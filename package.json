@@ -1,0 +1,23 @@
+{
+  "name": "sekki",
+  "version": "0.0.1",
+  "description": "A simple Discord Self-Bot",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enesfarukmeniz/sekki.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/enesfarukmeniz/sekki/issues"
+  },
+  "homepage": "https://github.com/enesfarukmeniz/sekki#readme",
+  "dependencies": {
+    "discord.js": "11.0.0",
+    "winston": "2.3.1",
+    "winston-daily-rotate-file": "1.4.4",
+    "node-base64-image": "1.0.3",
+    "sharp": "0.17.2"
+  }
+}
