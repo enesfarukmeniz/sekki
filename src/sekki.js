@@ -3,6 +3,7 @@ const sharp = require("sharp");
 const base64 = require("node-base64-image");
 const commands = require("./commands.js");
 const logger = require("./logger.js");
+const util = require("./util.js");
 
 try {
     config = require('./../config.json');
@@ -21,7 +22,6 @@ client.on('disconnect', () => {
 });
 
 client.on("message", (message) => {
-    //TODO maybe there is some logging here
     if (message.isMentioned(client.user.id) ||
         message.mentions.everyone ||
         (message.guild && message.mentions.roles.filter(role => message.guild.member(client.user.id).roles.has(role.id)).size > 0)) {
@@ -36,10 +36,10 @@ client.on("message", (message) => {
 
     if (commands[command]) {
         if (commands[command].guild === true && !message.guild) {
-            message.channel.sendMessage(`Lol **${command}** is guild command.`);
+            util.userNotifier(message.channel, `Lol **${command}** is guild command.`);
+            message.delete();
             return;
         }
-
         const permissions = commands[command].permissions;
         if (permissions && permissions.length > 0) {
             message.guild.fetchMember(client.user.id).then(member => {
@@ -55,8 +55,9 @@ client.on("message", (message) => {
             commands[command].run(client, message, args);
         }
     } else {
-        message.channel.sendMessage(`No command named **${command}**.`);
-        logger.noCommand(client, message);
+        util.userNotifier(message.channel, `No command named **${command}**.`);
+        logger.generic(client, message, "Command not found");
+        message.delete();
     }
 });
 
@@ -64,7 +65,7 @@ client.on("presenceUpdate", (oldMember, newMember) => {
 
 });
 
-process.on('unhandledRejection', function(err, promise) {
+process.on('unhandledRejection', function (err, promise) {
     console.error('Unhandled rejection (promise: , reason: ', err, ').');
     //console.error('Unhandled rejection (promise: ', promise, ', reason: ', err, ').');
 });

@@ -1,7 +1,10 @@
 const logger = require("./logger.js");
 const sharp = require('sharp');
 const base64 = require('node-base64-image');
+const moment = require('moment');
+require("moment-duration-format");
 const config = require('./../config.json');
+const util = require("./util.js");
 
 const commands = {
     help: {
@@ -11,9 +14,9 @@ const commands = {
             message.delete();
             if (command) {
                 if (!commands[command]) {
-                    message.channel.sendMessage(`**${command}** is not valid command.`);
+                    util.userNotifier(message.channel, `**${command}** is not valid command.`);
                 } else {
-                    message.channel.sendMessage(`\`\`\`${command} command usage: ${config.prefix}${commands[command].help}\nIt does: ${commands[command].description}\`\`\``);
+                    util.userNotifier(message.channel, `\`\`\`${command} command usage: ${config.prefix}${commands[command].help}\nIt does: ${commands[command].description}\`\`\``, 10);
                 }
             } else {
                 let helpMessage = "```fix\n";
@@ -25,7 +28,7 @@ const commands = {
                     helpMessage += "\n\n";
                 });
                 helpMessage += "```";
-                message.channel.sendMessage(helpMessage);
+                util.userNotifier(message.channel, helpMessage, 10);
             }
         }
     },
@@ -47,23 +50,43 @@ const commands = {
             message.edit("https://github.com/enesfarukmeniz/sekki");
         }
     },
+    info: {
+        help: "info",
+        description: "Info about Sekki",
+        run: function (client, message) {
+            message.delete();
+            const duration = moment.duration(client.uptime).format(" D [days], H [hrs], m [mins], s [secs]");
+            let info = "```asciidoc\n= STATISTICS =\n" +
+                "• Mem Usage  :: " + (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB\n" +
+                "• Uptime     :: " + duration + "\n" +
+                "• Users      :: " + client.users.size.toLocaleString() + "\n" +
+                "• Servers    :: " + client.guilds.size.toLocaleString() + "\n" +
+                "• Channels   :: " + client.channels.size.toLocaleString() + "```";
+            util.userNotifier(message.channel, info, 10);
+        }
+    },
     reply: {
         help: "reply %message_id% %message%",
         description: "Replies a message with id",
         run: function (client, message, [messageId, ...messageArray]) {
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
-                message.channel.sendMessage("", {
-                    embed: {
-                        color: 0xFFFFFF,
-                        author: {
-                            name: replyMessage.author.username,
-                            icon_url: replyMessage.author.avatarURL
-                        },
-                        description: replyMessage.content,
-                        timestamp: replyMessage.createdAt
-                    }
-                }).then(() => message.channel.sendMessage(messageArray.join(" ")).then(() => message.delete()));
+                if (replyMessage) {
+                    message.channel.sendMessage("", {
+                        embed: {
+                            color: 0xFFFFFF,
+                            author: {
+                                name: replyMessage.author.username,
+                                icon_url: replyMessage.author.avatarURL
+                            },
+                            description: replyMessage.content,
+                            timestamp: replyMessage.createdAt
+                        }
+                    }).then(() => message.channel.sendMessage(messageArray.join(" ")).then(() => message.delete()));
+                } else {
+                    message.delete();
+                    util.userNotifier(message.channel, `Message with ${messageId} id not found`);
+                }
             });
         }
     },
@@ -73,42 +96,89 @@ const commands = {
         run: function (client, message, [messageId, ...messageArray]) {
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
-                message.channel.sendMessage("", {
-                    embed: {
-                        color: 0xFFFFFF,
-                        author: {
-                            name: replyMessage.author.username,
-                            icon_url: replyMessage.author.avatarURL
-                        },
-                        description: replyMessage.content,
-                        timestamp: replyMessage.createdAt
-                    }
-                }).then(() => message.channel.sendMessage(replyMessage.author + " " + messageArray.join(" ")).then(() => message.delete()));
+                if (replyMessage) {
+                    message.channel.sendMessage("", {
+                        embed: {
+                            color: 0xFFFFFF,
+                            author: {
+                                name: replyMessage.author.username,
+                                icon_url: replyMessage.author.avatarURL
+                            },
+                            description: replyMessage.content,
+                            timestamp: replyMessage.createdAt
+                        }
+                    }).then(() => message.channel.sendMessage(replyMessage.author + " " + messageArray.join(" ")).then(() => message.delete()));
+                } else {
+                    message.delete();
+                    util.userNotifier(message.channel, `Message with ${messageId} id not found`);
+                }
             });
         }
     },
     emojify: {
         permissions: [],
-        help: "emojify",
-        description: "Shows how image looks like if becomes emoji. Use command with image",
-        run: function (client, message) {
-            //TODO - beauty and logging
-            if (!message.attachments.array().length) {
-                message.channel.sendMessage("Why u no image");
-            } else {
-                const image = message.attachments.array().pop();
-                if (!image.height || !image.width) {
-                    message.channel.sendMessage("Why u no proper image");
-                } else {
-                    base64.encode(image.url, {}, function (err, response) {
+        help: "emojify [%imageurl%]",
+        description: "Shows how image looks like if becomes emoji. Use command with image or url",
+        run: function (client, message, [url]) {
+            if (url) {
+                base64.encode(url, {}, function (error, response) {
+                    if (!error) {
                         sharp(response).resize(32, 32).png().toBuffer(function (err, buffer, info) {
-                            message.channel.sendFile(buffer, "image.png", "Big Emoji");
+                            if (!err) {
+                                message.channel.sendFile(buffer, "image.png", "Big Emoji");
+                            } else {
+                                logger.imgError(client, message, err, false);
+                                util.userNotifier(message.channel, "Couldn't convert image");
+                            }
                         });
                         sharp(response).resize(22, 22).png().toBuffer(function (err, buffer, info) {
-                            message.channel.sendFile(buffer, "image.png", "Small Emoji");
+                            if (!err) {
+                                message.channel.sendFile(buffer, "image.png", "Small Emoji");
+                            } else {
+                                logger.imgError(client, message, err, false);
+                                util.userNotifier(message.channel, "Couldn't convert image");
+                            }
                         });
-                    });
+                    } else {
+                        logger.imgError(client, message, error, false);
+                        util.userNotifier(message.channel, "Couldn't get image");
+                    }
+                });
+            }
+            else {
+                if (!message.attachments.array().length) {
+                    util.userNotifier(message.channel, "No url or image attached");
+                } else {
+                    const image = message.attachments.array().pop();
+                    if (!image.height || !image.width) {
+                        util.userNotifier(message.channel, "Image unidentified");
+                        logger.imgError(client, message, null, true);
+                    } else {
+                        base64.encode(image.url, {}, function (error, response) {
+                            if (!error) {
+                                sharp(response).resize(32, 32).png().toBuffer(function (err, buffer, info) {
+                                    if (!err) {
+                                        message.channel.sendFile(buffer, "image.png", "Big Emoji");
+                                    } else {
+                                        logger.imgError(client, message, err, true);
+                                        util.userNotifier(message.channel, "Couldn't convert image");
+                                    }
+                                });
+                                sharp(response).resize(22, 22).png().toBuffer(function (err, buffer, info) {
+                                    if (!err) {
+                                        message.channel.sendFile(buffer, "image.png", "Small Emoji");
+                                    } else {
+                                        logger.imgError(client, message, err, true);
+                                        util.userNotifier(message.channel, "Couldn't convert image");
+                                    }
+                                });
+                            } else {
+                                logger.imgError(client, message, error, true);
+                                util.userNotifier(message.channel, "Couldn't get image");
+                            }
+                        });
 
+                    }
                 }
             }
         }
@@ -123,11 +193,9 @@ const commands = {
                 let msgs = messages.filterArray(msg => msg.author.id === client.user.id).slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        //TODO log
+                        logger.messageDelete(client, msg);
                         msg.delete();
                     });
-                } else {
-                    //TODO log?
                 }
             }));
         }
@@ -135,6 +203,7 @@ const commands = {
     delall: {
         help: "delall [%number%]",
         permissions: ["MANAGE_MESSAGES"],
+        guild: true,
         description: "Deletes all users' messages. Default %number% value is 1, max 100",
         run: function (client, message, [number = 1]) {
             message.delete().then(() => message.channel.fetchMessages({
@@ -143,11 +212,9 @@ const commands = {
                 let msgs = messages.array().slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        //TODO log
+                        logger.messageDelete(client, msg);
                         msg.delete();
                     });
-                } else {
-                    //TODO log?
                 }
             }));
         }
@@ -177,18 +244,17 @@ const commands = {
                         }
                     });
                 } else {
-                    //TODO log no saveChannel
+                    logger.generic(client, message, "No save channel");
+                    util.userNotifier(message.channel, `No command named **${command}**.`);
                 }
             });
         }
     }
     //TODO list
     //logging to a channel
-    //save message (to a channel?)
-    //info
     //eval!!!
     //lenny face - node-json-db
-    //
+    //messageUpdate
 };
 
 module.exports = commands;

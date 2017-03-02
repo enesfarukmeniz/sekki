@@ -12,19 +12,25 @@ const logger = {
         log += `Message: ${message.author.username}: ${message.cleanContent}\n`;
         console.log(log);
     },
-    noCommand: function() {
+    generic: function (client, message, log) {
         //console.log(arguments)
     },
     missingPermission: function() {
         //console.log(arguments)
     },
-    log: function () {
+    log: function (client, message, key) {
 
     },
-    warn: function () {
+    warn: function (client, message) {
 
     },
-    error : function () {
+    error: function (client, message) {
+
+    },
+    imgError: function (client, message, error, embed) {
+
+    },
+    messageDelete: function (client, message) {
 
     }
 };
