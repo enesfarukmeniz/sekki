@@ -1,5 +1,7 @@
 {
   "prefix": "prefix"
   "token": "SECRET_TOKEN",
-  "password": "Discord Password"
+  "password": "Discord Password",
+  "logChannel": "Channel ID",
+  "saveChannel": "Channel ID"
 }
