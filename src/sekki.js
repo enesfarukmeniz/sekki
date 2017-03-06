@@ -12,20 +12,36 @@ try {
     return;
 }
 
-const client = new Discord.Client();
+const client = new Discord.Client({
+    apiRequestMethod: "sequential",
+    sync: true,
+    restWsBridgeTimeout: 10000,
+    disabledEvents: ["GUILD_MEMBERS_CHUNK", "MESSAGE_DELETE_BULK", "MESSAGE_REACTION_REMOVE",
+        "MESSAGE_UPDATE", "MESSAGE_REACTION_ADD", "MESSAGE_DELETE", "RELATIONSHIP_REMOVE",
+        "MESSAGE_REACTION_REMOVE_ALL", "USER_NOTE_UPDATE", "VOICE_STATE_UPDATE",
+        "PRESENCE_UPDATE", "TYPING_START", "VOICE_SERVER_UPDATE", "RELATIONSHIP_ADD"
+    ]
+});
+
 client.login(config.token);
 
 client.on('ready', () => {
+    logger.generic(client, null, "on ready");
 });
 
-client.on('disconnect', () => {
+client.on('reconnecting', () => {
+    logger.generic(client, null, "reconnecting");
+});
+
+client.on('disconnect', (event) => {
+    logger.log(client, event, "disconnect", "closeEvent");
 });
 
 client.on("message", (message) => {
     if (message.isMentioned(client.user.id) ||
         message.mentions.everyone ||
         (message.guild && message.mentions.roles.filter(role => message.guild.member(client.user.id).roles.has(role.id)).size > 0)) {
-        logger.mention(client, message);
+        logger.log(client, message, "mention", "mention");
     }
     if (message.author.id !== client.user.id) return;
 
@@ -43,12 +59,16 @@ client.on("message", (message) => {
         const permissions = commands[command].permissions;
         if (permissions && permissions.length > 0) {
             message.guild.fetchMember(client.user.id).then(member => {
-                const missingPermissions = member.missingPermissions(permissions)
+                let missingPermissions = member.missingPermissions(permissions);
                 if (missingPermissions.length === 0) {
                     commands[command].run(client, message, args);
                 } else {
                     message.channel.sendMessage(`I need ${missingPermissions.join(", ")} to **${command}**.`);
-                    logger.missingPermission(client, message, missingPermissions)
+                    missingPermissions = {
+                        missingPermissions: missingPermissions,
+                        message: message
+                    };
+                    logger.log(client, missingPermissions, "missingPermissions", "missingPermissions")
                 }
             });
         } else {
@@ -61,11 +81,90 @@ client.on("message", (message) => {
     }
 });
 
-client.on("presenceUpdate", (oldMember, newMember) => {
-
+client.on('emojiCreate', (emoji) => {
+    logger.log(client, event, "emojiCreate", "emoji");
 });
 
-process.on('unhandledRejection', function (err, promise) {
-    console.error('Unhandled rejection (promise: , reason: ', err, ').');
-    //console.error('Unhandled rejection (promise: ', promise, ', reason: ', err, ').');
+client.on('emojiDelete', (emoji) => {
+    logger.log(client, event, "emojiDelete", "emoji");
+});
+
+client.on('error', (error) => {
+    logger.error(client, error, "error", "error");
+});
+
+client.on('warn', (warn) => {
+    logger.error(client, warn, "warn", "warn");
+});
+
+client.on('guildBanAdd', (guild, user) => {
+    logger.warn(client, {
+        guild: guild,
+        user: user
+    }, "guildBanAdd", "guildBan");
+});
+
+client.on('guildBanRemove', (guild, user) => {
+    logger.log(client, {
+        guild: guild,
+        user: user
+    }, "guildBanRemove", "guildBan");
+});
+
+client.on('guildMemberAdd', (guildMember) => {
+    logger.log(client, guildMember, "guildMemberAdd", "guildMember");
+});
+
+client.on('guildMemberRemove', (guildMember) => {
+    logger.log(client, guildMember, "guildMemberRemove", "guildMember");
+});
+
+client.on('guildMemberUpdate', (guildMemberOld, guildMemberNew) => {
+    logger.log(client, {
+        guildMemberOld: guildMemberOld,
+        guildMemberNew: guildMemberNew
+    }, "guildMemberUpdate", "guildMembers");
+});
+
+client.on('guildUnavailable', (guild) => {
+    logger.warn(client, guild, "guildUnavailable", "guild");
+});
+
+client.on('roleCreate', (role) => {
+    logger.log(client, role, "roleCreate", "role");
+});
+
+client.on('roleDelete', (role) => {
+    logger.log(client, role, "roleDelete", "role");
+});
+
+client.on('roleUpdate', (roleOld, roleNew) => {
+    logger.log(client, {
+        roleOld: roleOld,
+        roleNew: roleNew
+    }, "roleUpdate", "roles");
+});
+
+client.on('channelCreate', (channel) => {
+    logger.log(client, role, "channelCreate", "channel");
+});
+
+client.on('channelRemove', (channel) => {
+    logger.log(client, role, "channelRemove", "channel");
+});
+
+client.on('channelUpdate', (channelOld, channelNew) => {
+    logger.log(client, {
+        channelOld: channelOld,
+        channelNew: channelNew
+    }, "channelUpdate", "channels");
+});
+
+process.on('unhandledRejection', function (error, promise) {
+    logger.error(client, {
+        error: err,
+        promise: promise
+    }, "unhandledRejection", "unhandledRejection");
+    //remove
+    console.error('Unhandled rejection (promise: , reason: ', error, ').');
 });

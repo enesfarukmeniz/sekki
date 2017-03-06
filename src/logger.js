@@ -1,37 +1,44 @@
+const embedBuilder = require("./embedBuilder.js");
+const config = require('./../config.json');
 const winston = require("winston");
 require("winston-daily-rotate-file");
-//TODO lots of work here...
 const logger = {
-    mention: function (client, message) {
-        let log = "";
-        if (message.guild) {
-            log += `Guild: ${message.guild.name}\n`;
-            log += `Channel: ${message.channel.name}\n`;
-        }
-        log += `Timestamp: ${message.createdAt}\n`;
-        log += `Message: ${message.author.username}: ${message.cleanContent}\n`;
-        console.log(log);
-    },
     generic: function (client, message, log) {
-        //console.log(arguments)
+        const level = "info";
+        if (message) {
+            logger.embedLogger(client, level, embedBuilder.message(message, level).embed, log);
+        } else {
+            logger.embedLogger(client, level, embedBuilder.empty(level).embed, log);
+        }
     },
-    missingPermission: function() {
-        //console.log(arguments)
+    log: function (client, data, event, wrapper) {
+        const level = "info";
+        const logMessage = embedBuilder[wrapper](data, level);
+        logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
-    log: function (client, message, key) {
-
+    warn: function (client, data, event, wrapper) {
+        const level = "warning";
+        const logMessage = embedBuilder[wrapper](data, level);
+        logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
-    warn: function (client, message) {
-
+    error: function (client, data, event, wrapper) {
+        const level = "error";
+        const logMessage = embedBuilder[wrapper](data, level);
+        logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
-    error: function (client, message) {
-
-    },
-    imgError: function (client, message, error, embed) {
-
-    },
-    messageDelete: function (client, message) {
-
+    imgError: function () {
+    }, /*: function (client, message, error, type, embedImage) {
+     const level = "error";
+     },*/
+    embedLogger: function (client, level, embed, message = "") {
+        const logChannel = client.channels.filter(channel => config.logChannel == channel.id).first();
+        if (logChannel) {
+            logChannel.sendMessage(message, {
+                embed: embed
+            });
+        } else {
+            console.log("No log channel");
+        }
     }
 };
 

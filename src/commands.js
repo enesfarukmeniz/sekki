@@ -123,24 +123,24 @@ const commands = {
             if (url) {
                 base64.encode(url, {}, function (error, response) {
                     if (!error) {
-                        sharp(response).resize(32, 32).png().toBuffer(function (err, buffer, info) {
+                        sharp(response).resize(32, 32).png().toBuffer(function (err, buffer) {
                             if (!err) {
                                 message.channel.sendFile(buffer, "image.png", "Big Emoji");
                             } else {
-                                logger.imgError(client, message, err, false);
+                                logger.imgError(client, message, err, "sharp", false);
                                 util.userNotifier(message.channel, "Couldn't convert image");
                             }
                         });
-                        sharp(response).resize(22, 22).png().toBuffer(function (err, buffer, info) {
+                        sharp(response).resize(22, 22).png().toBuffer(function (err, buffer) {
                             if (!err) {
                                 message.channel.sendFile(buffer, "image.png", "Small Emoji");
                             } else {
-                                logger.imgError(client, message, err, false);
+                                logger.imgError(client, message, err, "sharp", false);
                                 util.userNotifier(message.channel, "Couldn't convert image");
                             }
                         });
                     } else {
-                        logger.imgError(client, message, error, false);
+                        logger.imgError(client, message, error, "base64", false);
                         util.userNotifier(message.channel, "Couldn't get image");
                     }
                 });
@@ -152,28 +152,28 @@ const commands = {
                     const image = message.attachments.array().pop();
                     if (!image.height || !image.width) {
                         util.userNotifier(message.channel, "Image unidentified");
-                        logger.imgError(client, message, null, true);
+                        logger.imgError(client, message, null, "attachment", true);
                     } else {
                         base64.encode(image.url, {}, function (error, response) {
                             if (!error) {
-                                sharp(response).resize(32, 32).png().toBuffer(function (err, buffer, info) {
+                                sharp(response).resize(32, 32).png().toBuffer(function (err, buffer) {
                                     if (!err) {
                                         message.channel.sendFile(buffer, "image.png", "Big Emoji");
                                     } else {
-                                        logger.imgError(client, message, err, true);
+                                        logger.imgError(client, message, err, "sharp", true);
                                         util.userNotifier(message.channel, "Couldn't convert image");
                                     }
                                 });
-                                sharp(response).resize(22, 22).png().toBuffer(function (err, buffer, info) {
+                                sharp(response).resize(22, 22).png().toBuffer(function (err, buffer) {
                                     if (!err) {
                                         message.channel.sendFile(buffer, "image.png", "Small Emoji");
                                     } else {
-                                        logger.imgError(client, message, err, true);
+                                        logger.imgError(client, message, err, "sharp", true);
                                         util.userNotifier(message.channel, "Couldn't convert image");
                                     }
                                 });
                             } else {
-                                logger.imgError(client, message, error, true);
+                                logger.imgError(client, message, error, "base64", true);
                                 util.userNotifier(message.channel, "Couldn't get image");
                             }
                         });
@@ -193,7 +193,7 @@ const commands = {
                 let msgs = messages.filterArray(msg => msg.author.id === client.user.id).slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        logger.messageDelete(client, msg);
+                        logger.log(client, msg, "messageDelete", "message");
                         msg.delete();
                     });
                 }
@@ -212,7 +212,7 @@ const commands = {
                 let msgs = messages.array().slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        logger.messageDelete(client, msg);
+                        logger.log(client, msg, "messageDelete", "message");
                         msg.delete();
                     });
                 }
@@ -250,11 +250,6 @@ const commands = {
             });
         }
     }
-    //TODO list
-    //logging to a channel
-    //eval!!!
-    //lenny face - node-json-db
-    //messageUpdate
 };
 
 module.exports = commands;

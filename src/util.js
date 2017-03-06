@@ -6,6 +6,6 @@ const util = {
             }, time * 1000);
         });
     }
-}
+};
 
 module.exports = util;
