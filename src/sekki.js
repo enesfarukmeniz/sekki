@@ -119,12 +119,14 @@ client.on('guildMemberRemove', (guildMember) => {
     logger.log(client, guildMember, "guildMemberRemove", "guildMember");
 });
 
+/*
 client.on('guildMemberUpdate', (guildMemberOld, guildMemberNew) => {
     logger.log(client, {
         guildMemberOld: guildMemberOld,
         guildMemberNew: guildMemberNew
     }, "guildMemberUpdate", "guildMembers");
 });
+ */
 
 client.on('guildUnavailable', (guild) => {
     logger.warn(client, guild, "guildUnavailable", "guild");
