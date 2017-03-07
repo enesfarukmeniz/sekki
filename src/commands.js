@@ -10,7 +10,7 @@ const commands = {
     help: {
         help: "help [%command%](obviously lol)",
         description: "Helps about commands lol",
-        run: function (client, message, [command]) {
+        run: function (database, client, message, [command]) {
             message.delete();
             if (command) {
                 if (!commands[command]) {
@@ -35,7 +35,7 @@ const commands = {
     ping: {
         help: "ping",
         description: "ping pong",
-        run: function (client, message) {
+        run: function (database, client, message) {
             message.delete();
             message.channel.sendMessage("ping...")
                 .then(msg => {
@@ -46,14 +46,14 @@ const commands = {
     github: {
         help: "github",
         description: "Returns github address of project",
-        run: function (client, message) {
+        run: function (database, client, message) {
             message.edit("https://github.com/enesfarukmeniz/sekki");
         }
     },
     info: {
         help: "info",
         description: "Info about Sekki",
-        run: function (client, message) {
+        run: function (database, client, message) {
             message.delete();
             const duration = moment.duration(client.uptime).format(" D [days], H [hrs], m [mins], s [secs]");
             let info = "```asciidoc\n= STATISTICS =\n" +
@@ -68,7 +68,7 @@ const commands = {
     reply: {
         help: "reply %message_id% %message%",
         description: "Replies a message with id",
-        run: function (client, message, [messageId, ...messageArray]) {
+        run: function (database, client, message, [messageId, ...messageArray]) {
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
                 if (replyMessage) {
@@ -93,7 +93,7 @@ const commands = {
     mreply: {
         help: "mreply %message_id% %message%",
         description: "Replies a message with id and mentions message owner",
-        run: function (client, message, [messageId, ...messageArray]) {
+        run: function (database, client, message, [messageId, ...messageArray]) {
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
                 if (replyMessage) {
@@ -116,10 +116,9 @@ const commands = {
         }
     },
     emojify: {
-        permissions: [],
         help: "emojify [%imageurl%]",
         description: "Shows how image looks like if becomes emoji. Use command with image or url",
-        run: function (client, message, [url]) {
+        run: function (database, client, message, [url]) {
             if (url) {
                 base64.encode(url, {}, function (error, response) {
                     if (!error) {
@@ -127,7 +126,11 @@ const commands = {
                             if (!err) {
                                 message.channel.sendFile(buffer, "image.png", "Big Emoji");
                             } else {
-                                logger.imgError(client, message, err, "sharp", false);
+                                if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                                    && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                                    && util.getLogData(database, "/log/event/imgError")) {
+                                    logger.imgError(client, message, "err", "sharp", false);
+                                }
                                 util.userNotifier(message.channel, "Couldn't convert image");
                             }
                         });
@@ -135,12 +138,20 @@ const commands = {
                             if (!err) {
                                 message.channel.sendFile(buffer, "image.png", "Small Emoji");
                             } else {
-                                logger.imgError(client, message, err, "sharp", false);
+                                if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                                    && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                                    && util.getLogData(database, "/log/event/imgError")) {
+                                    logger.imgError(client, message, err, "sharp", false);
+                                }
                                 util.userNotifier(message.channel, "Couldn't convert image");
                             }
                         });
                     } else {
-                        logger.imgError(client, message, error, "base64", false);
+                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                            && util.getLogData(database, "/log/event/imgError")) {
+                            logger.imgError(client, message, error, "base64", false);
+                        }
                         util.userNotifier(message.channel, "Couldn't get image");
                     }
                 });
@@ -152,7 +163,11 @@ const commands = {
                     const image = message.attachments.array().pop();
                     if (!image.height || !image.width) {
                         util.userNotifier(message.channel, "Image unidentified");
-                        logger.imgError(client, message, null, "attachment", true);
+                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                            && util.getLogData(database, "/log/event/imgError")) {
+                            logger.imgError(client, message, null, "attachment", true);
+                        }
                     } else {
                         base64.encode(image.url, {}, function (error, response) {
                             if (!error) {
@@ -160,7 +175,11 @@ const commands = {
                                     if (!err) {
                                         message.channel.sendFile(buffer, "image.png", "Big Emoji");
                                     } else {
-                                        logger.imgError(client, message, err, "sharp", true);
+                                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                                            && util.getLogData(database, "/log/event/imgError")) {
+                                            logger.imgError(client, message, err, "sharp", true);
+                                        }
                                         util.userNotifier(message.channel, "Couldn't convert image");
                                     }
                                 });
@@ -168,12 +187,20 @@ const commands = {
                                     if (!err) {
                                         message.channel.sendFile(buffer, "image.png", "Small Emoji");
                                     } else {
-                                        logger.imgError(client, message, err, "sharp", true);
+                                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                                            && util.getLogData(database, "/log/event/imgError")) {
+                                            logger.imgError(client, message, err, "sharp", true);
+                                        }
                                         util.userNotifier(message.channel, "Couldn't convert image");
                                     }
                                 });
                             } else {
-                                logger.imgError(client, message, error, "base64", true);
+                                if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                                    && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                                    && util.getLogData(database, "/log/event/imgError")) {
+                                    logger.imgError(client, message, error, "base64", true);
+                                }
                                 util.userNotifier(message.channel, "Couldn't get image");
                             }
                         });
@@ -186,14 +213,18 @@ const commands = {
     del: {
         help: "del [%number%]",
         description: "Deletes user's own messages. Default %number% value is 1, max is 100. Not guaranteed to delete %number% of messages cause of discord api limitations",
-        run: function (client, message, [number = 1]) {
+        run: function (database, client, message, [number = 1]) {
             message.delete().then(() => message.channel.fetchMessages({
                 limit: 100
             }).then(messages => {
                 let msgs = messages.filterArray(msg => msg.author.id === client.user.id).slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        logger.log(client, msg, "messageDelete", "message");
+                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                            && util.getLogData(database, "/log/event/messageDelete")) {
+                            logger.log(client, msg, "messageDelete", "message");
+                        }
                         msg.delete();
                     });
                 }
@@ -205,14 +236,18 @@ const commands = {
         permissions: ["MANAGE_MESSAGES"],
         guild: true,
         description: "Deletes all users' messages. Default %number% value is 1, max 100",
-        run: function (client, message, [number = 1]) {
+        run: function (database, client, message, [number = 1]) {
             message.delete().then(() => message.channel.fetchMessages({
                 limit: 100
             }).then(messages => {
                 let msgs = messages.array().slice(0, number);
                 if (msgs.length) {
                     msgs.forEach(msg => {
-                        logger.log(client, msg, "messageDelete", "message");
+                        if (util.getLogData(database, "/log/channel/" + message.channel.id)
+                            && util.getLogData(database, "/log/channel/" + message.channel.guild.id)
+                            && util.getLogData(database, "/log/event/messageDelete")) {
+                            logger.log(client, msg, "messageDelete", "message");
+                        }
                         msg.delete();
                     });
                 }
@@ -222,7 +257,7 @@ const commands = {
     save: {
         help: "save %messageid%",
         description: "Save message with %messageid% to configured saveChannel",
-        run: function (client, message, [messageId, ..._]) {
+        run: function (database, client, message, [messageId, ..._]) {
             message.delete();
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const saveMessage = messages.first();
@@ -248,6 +283,25 @@ const commands = {
                     util.userNotifier(message.channel, `No command named **${command}**.`);
                 }
             });
+        }
+    },
+    log: {
+        help: "log %key% %value%",
+        description: "Sets logging options for key %key% to value %value% ",
+        run: function (database, client, message, [key, value]) {
+            message.delete();
+            const valueMap = {
+                "yes": true,
+                "true": true,
+                "1": true,
+                "on": true,
+                "no": false,
+                "false": false,
+                "0": false,
+                "off": false
+            };
+            util.setLogData(database, key, valueMap[value]);
+            logger.generic(client, message, `Logging for ${key} changed to ${valueMap[value]}`);
         }
     }
 };

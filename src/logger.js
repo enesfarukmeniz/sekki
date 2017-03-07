@@ -13,23 +13,24 @@ const logger = {
     },
     log: function (client, data, event, wrapper) {
         const level = "info";
-        const logMessage = embedBuilder[wrapper](data, level);
+        const logMessage = embedBuilder[wrapper](data, level, event);
         logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
     warn: function (client, data, event, wrapper) {
         const level = "warning";
-        const logMessage = embedBuilder[wrapper](data, level);
+        const logMessage = embedBuilder[wrapper](data, level, event);
         logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
     error: function (client, data, event, wrapper) {
         const level = "error";
-        const logMessage = embedBuilder[wrapper](data, level);
+        const logMessage = embedBuilder[wrapper](data, level, event);
         logger.embedLogger(client, level, logMessage.embed, logMessage.message);
     },
-    imgError: function () {
-    }, /*: function (client, message, error, type, embedImage) {
-     const level = "error";
-     },*/
+    imgError: function (client, data, error, wrapper, embedImage) {
+        const level = "error";
+        const logMessage = embedBuilder[wrapper](data, level, error, embedImage);
+        logger.embedLogger(client, level, logMessage.embed, logMessage.message);
+    },
     embedLogger: function (client, level, embed, message = "") {
         const logChannel = client.channels.filter(channel => config.logChannel == channel.id).first();
         if (logChannel) {
