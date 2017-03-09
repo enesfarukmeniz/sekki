@@ -1,9 +1,9 @@
-const logger = require("./logger.js");
 const sharp = require('sharp');
 const base64 = require('node-base64-image');
 const moment = require('moment');
 require("moment-duration-format");
 const config = require('./../config.json');
+const logger = require("./logger.js");
 const util = require("./util.js");
 
 const commands = {
@@ -36,10 +36,9 @@ const commands = {
         help: "ping",
         description: "ping pong",
         run: function (database, client, message) {
-            message.delete();
-            message.channel.sendMessage("ping...")
+            message.edit("ping...")
                 .then(msg => {
-                    msg.edit(`Pong! ${msg.createdTimestamp - message.createdTimestamp}ms`);
+                    msg.edit(`Pong! ${msg.editedTimestamp - message.createdTimestamp}ms`);
                 });
         }
     },
@@ -54,7 +53,6 @@ const commands = {
         help: "info",
         description: "Info about Sekki",
         run: function (database, client, message) {
-            message.delete();
             const duration = moment.duration(client.uptime).format(" D [days], H [hrs], m [mins], s [secs]");
             let info = "```asciidoc\n= STATISTICS =\n" +
                 "• Mem Usage  :: " + (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB\n" +
@@ -62,17 +60,55 @@ const commands = {
                 "• Users      :: " + client.users.size.toLocaleString() + "\n" +
                 "• Servers    :: " + client.guilds.size.toLocaleString() + "\n" +
                 "• Channels   :: " + client.channels.size.toLocaleString() + "```";
-            util.userNotifier(message.channel, info, 10);
+            util.userNotifierPreMessage(message, info, 10);
+        }
+    },
+    embed: {
+        help: "embed %message%",
+        description: "Sends embed message because why not",
+        run: function (database, client, message, messageArray) {
+            message.edit("", {
+                embed: {
+                    color: 0xFFFFFF,
+                    author: {
+                        name: message.author.username,
+                        icon_url: message.author.avatarURL
+                    },
+                    description: messageArray.join(" "),
+                    timestamp: message.createdAt,
+                    footer: {
+                        text: message.guild ? (`${message.guild.name} : #${message.channel.name}`) : "",
+                        icon_url: message.guild ? message.guild.iconURL : ""
+                    }
+                }
+            });
+        }
+    },
+    embedfake: {
+        help: "embedfake %authorId% %message%",
+        description: "Sends a fake embed message from user %authorId% because why not",
+        run: function (database, client, message, [authorId, ...messageArray]) {
+            message.edit("", {
+                embed: {
+                    color: 0xFFFFFF,
+                    author: {
+                        name: client.users.get(authorId).username,
+                        icon_url: client.users.get(authorId).avatarURL
+                    },
+                    description: messageArray.join(" ")
+                }
+            });
         }
     },
     reply: {
         help: "reply %message_id% %message%",
         description: "Replies a message with id",
         run: function (database, client, message, [messageId, ...messageArray]) {
+            message.channel.sendMessage(messageArray.join(" "));
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
                 if (replyMessage) {
-                    message.channel.sendMessage("", {
+                    message.edit("", {
                         embed: {
                             color: 0xFFFFFF,
                             author: {
@@ -82,10 +118,9 @@ const commands = {
                             description: replyMessage.content,
                             timestamp: replyMessage.createdAt
                         }
-                    }).then(() => message.channel.sendMessage(messageArray.join(" ")).then(() => message.delete()));
+                    });
                 } else {
-                    message.delete();
-                    util.userNotifier(message.channel, `Message with ${messageId} id not found`);
+                    util.userNotifierPreMessage(message, `Message with id ${messageId} not found`);
                 }
             });
         }
@@ -96,8 +131,9 @@ const commands = {
         run: function (database, client, message, [messageId, ...messageArray]) {
             message.channel.fetchMessages({limit: 1, around: messageId}).then(messages => {
                 const replyMessage = messages.first();
+                message.channel.sendMessage(replyMessage.author + " " + messageArray.join(" "));
                 if (replyMessage) {
-                    message.channel.sendMessage("", {
+                    message.edit("", {
                         embed: {
                             color: 0xFFFFFF,
                             author: {
@@ -107,10 +143,9 @@ const commands = {
                             description: replyMessage.content,
                             timestamp: replyMessage.createdAt
                         }
-                    }).then(() => message.channel.sendMessage(replyMessage.author + " " + messageArray.join(" ")).then(() => message.delete()));
+                    });
                 } else {
-                    message.delete();
-                    util.userNotifier(message.channel, `Message with ${messageId} id not found`);
+                    util.userNotifierPreMessage(message, `Message with id ${messageId} not found`);
                 }
             });
         }
@@ -280,7 +315,7 @@ const commands = {
                     });
                 } else {
                     logger.generic(client, message, "No save channel");
-                    util.userNotifier(message.channel, `No command named **${command}**.`);
+                    util.userNotifier(message.channel, "No save channel");
                 }
             });
         }

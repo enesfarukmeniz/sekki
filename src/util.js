@@ -6,6 +6,13 @@ const util = {
             }, time * 1000);
         });
     },
+    userNotifierPreMessage: function (msg, message, time = 5) {
+        msg.edit(message).then(msg => {
+            setTimeout(function () {
+                msg.delete();
+            }, time * 1000);
+        });
+    },
     getLogData: function (database, key) {
         try {
             return database.getData(key);

@@ -2,8 +2,9 @@ const Discord = require("discord.js");
 const JsonDB = require('node-json-db');
 const sharp = require("sharp");
 const empty = require('is-empty');
-const diff = require("deep-object-diff").diff;
 const base64 = require("node-base64-image");
+const diff = require("deep-object-diff").diff;
+
 const commands = require("./commands.js");
 const logger = require("./logger.js");
 const util = require("./util.js");
@@ -31,10 +32,10 @@ let database;
 client.login(config.token);
 
 client.on('ready', () => {
+    database = new JsonDB("data/db", true, true);
     if (util.getLogData(database, "/log/event/ready")) {
         logger.generic(client, null, "on ready");
     }
-    database = new JsonDB("data/db", true, true);
 });
 
 client.on('reconnecting', () => {
@@ -64,8 +65,7 @@ client.on("message", (message) => {
 
     if (commands[command]) {
         if (commands[command].guild === true && !message.guild) {
-            util.userNotifier(message.channel, `Lol **${command}** is guild command.`);
-            message.delete();
+            util.userNotifierPreMessage(message, `Lol **${command}** is guild command.`);
             return;
         }
         const permissions = commands[command].permissions;
@@ -75,22 +75,20 @@ client.on("message", (message) => {
                 if (missingPermissions.length === 0) {
                     commands[command].run(database, client, message, args);
                 } else {
-                    message.delete();
-                    util.userNotifier(message.channel, `I need ${missingPermissions.join(", ")} to **${command}**.`);
                     missingPermissions = {
                         missingPermissions: missingPermissions,
                         message: message
                     };
-                    logger.warn(client, missingPermissions, "missingPermissions", "missingPermissions")
+                    logger.warn(client, missingPermissions, "missingPermissions", "missingPermissions");
+                    util.userNotifierPreMessage(message, `I need ${missingPermissions.missingPermissions.join(", ")} to **${command}**.`);
                 }
             });
         } else {
             commands[command].run(database, client, message, args);
         }
     } else {
-        util.userNotifier(message.channel, `No command named **${command}**.`);
+        util.userNotifierPreMessage(message, `No command named **${command}**.`);
         logger.generic(client, message, "Command not found");
-        message.delete();
     }
 });
 
@@ -103,6 +101,17 @@ client.on('emojiCreate', (emoji) => {
 client.on('emojiDelete', (emoji) => {
     if (util.getLogData(database, "/log/event/emojiDelete") && util.getLogData(database, "/log/guild/" + emoji.guild.id)) {
         logger.log(client, emoji, "emojiDelete", "emoji");
+    }
+});
+
+client.on('emojiUpdate', (emojiOld, emojiNew) => {
+    if (util.getLogData(database, "/log/event/emojiUpdate") && util.getLogData(database, "/log/guild/" + emojiOld.guild.id)) {
+        if (!empty(diff(emojiOld, emojiNew))) {
+            logger.log(client, {
+                emojiOld: emojiOld,
+                emojiNew: emojiNew
+            }, "emojiUpdate", "emojis");
+        }
     }
 });
 
@@ -150,7 +159,7 @@ client.on('guildMemberRemove', (guildMember) => {
 
 client.on('guildMemberUpdate', (guildMemberOld, guildMemberNew) => {
     if (util.getLogData(database, "/log/event/guildMemberUpdate") && util.getLogData(database, "/log/guild/" + guildMemberOld.guild.id)) {
-        if (!empty(diff(guildMemberNew, guildMemberNew))) {
+        if (!empty(diff(guildMemberOld, guildMemberNew))) {
             logger.log(client, {
                 guildMemberOld: guildMemberOld,
                 guildMemberNew: guildMemberNew
@@ -218,6 +227,4 @@ process.on('unhandledRejection', function (error, promise) {
             promise: promise
         }, "unhandledRejection", "unhandledRejection");
     }
-    //remove
-    console.error('Unhandled rejection (promise: , reason: ', error, ').');
 });

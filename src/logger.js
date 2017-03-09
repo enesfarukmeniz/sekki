@@ -1,7 +1,10 @@
-const embedBuilder = require("./embedBuilder.js");
-const config = require('./../config.json');
+const detailedDiff = require("deep-object-diff").detailedDiff;
 const winston = require("winston");
 require("winston-daily-rotate-file");
+
+const embedBuilder = require("./embedBuilder.js");
+const config = require('./../config.json');
+
 const logger = {
     generic: function (client, message, log) {
         const level = "info";

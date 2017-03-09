@@ -1,3 +1,6 @@
+const detailedDiff = require("deep-object-diff").detailedDiff;
+const empty = require('is-empty');
+
 const embedBuilder = {
     levels: {
         info: 0x82bbed,
@@ -46,6 +49,44 @@ const embedBuilder = {
                 },
                 description: data.name + " - " + data,
                 timestamp: data.createdAt,
+                footer: {
+                    text: data.guild.name,
+                    icon_url: data.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
+    },
+    emojis: function (data, level, event) {
+        let diff = detailedDiff(data.emojiOld, data.emojiNew);
+
+        const helpers = {};
+
+        for (stat of ["added", "deleted", "updated"]) {
+            if (empty(diff[stat])) {
+                delete diff[stat];
+            } else {
+                for (key of []) {
+                    if (diff[stat][key]) {
+                        for (index of Object.keys(diff[stat][key])) {
+                            diff[stat][key][index] = helpers[key](data.emojiOld, diff[stat][key][index])
+                        }
+                    }
+                }
+            }
+        }
+
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "",
+                },
+                description: data.emojiOld.name + " & " + data.emojiOld + " - " + data.emojiNew.name + " & " + data.emojiNew + "```json\n" + JSON.stringify(diff, null, 2) + "```",
+                timestamp: new Date(),
+                footer: {
+                    text: data.emojiOld.guild.name,
+                    icon_url: data.emojiOld.guild.iconURL
+                }
             },
             message: event
         }, level);
@@ -54,7 +95,7 @@ const embedBuilder = {
         return embedBuilder.colorWrapper({
             embed: {
                 author: {
-                    name: Sekki
+                    name: "Sekki"
                 },
                 description: `Code: ${data.code}\nDescription: ${data.reason}\nClean Exit: ${data.wasClean}`,
                 timestamp: new Date()
@@ -97,6 +138,7 @@ const embedBuilder = {
         }, level);
     },
     error: function (data, level, event) {
+        //TODO
         return embedBuilder.colorWrapper(
             {
                 embed: {},
@@ -104,6 +146,7 @@ const embedBuilder = {
             }, level);
     },
     warn: function (data, level, event) {
+        //TODO
         return embedBuilder.colorWrapper(
             {
                 embed: {},
@@ -111,6 +154,7 @@ const embedBuilder = {
             }, level);
     },
     guildBan: function (data, level, event) {
+        //TODO
         return embedBuilder.colorWrapper(
             {
                 embed: {},
@@ -118,20 +162,63 @@ const embedBuilder = {
             }, level);
     },
     guildMember: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "guildMember"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.user.username,
+                    icon_url: data.user.avatarURL
+                },
+                description: "",
+                timestamp: new Date(),
+                footer: {
+                    text: data.guild.name,
+                    icon_url: data.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     guildMembers: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "guildMembers"
-            }, level);
+        let diff = detailedDiff(data.guildMemberOld, data.guildMemberNew);
+
+        const helpers = {
+            _roles: function (guild, roleId) {
+                return guild.roles.get(roleId).name;
+            }
+        };
+
+        for (stat of ["added", "deleted", "updated"]) {
+            if (empty(diff[stat])) {
+                delete diff[stat];
+            } else {
+                for (key of ["_roles"]) {
+                    if (diff[stat][key]) {
+                        for (index of Object.keys(diff[stat][key])) {
+                            diff[stat][key][index] = helpers[key](data.guildMemberOld.guild, diff[stat][key][index])
+                        }
+                    }
+                }
+            }
+        }
+
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.guildMemberOld.user.username,
+                    icon_url: data.guildMemberOld.user.avatarURL
+                },
+                description: "```json\n" + JSON.stringify(diff, null, 2) + "```",
+                timestamp: new Date(),
+                footer: {
+                    text: data.guildMemberOld.guild.name,
+                    icon_url: data.guildMemberOld.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     guild: function (data, level, event) {
+        //TODO
         return embedBuilder.colorWrapper(
             {
                 embed: {},
@@ -139,45 +226,139 @@ const embedBuilder = {
             }, level);
     },
     role: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "role"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.name,
+                },
+                description: "Members:" + data.members.array().join(", "),
+                timestamp: data.createdAt,
+                footer: {
+                    text: data.guild.name,
+                    icon_url: data.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     roles: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "roles"
-            }, level);
+        let diff = detailedDiff(data.roleOld, data.roleNew);
+
+        const helpers = {};
+
+        for (stat of ["added", "deleted", "updated"]) {
+            if (empty(diff[stat])) {
+                delete diff[stat];
+            } else {
+                for (key of []) {
+                    if (diff[stat][key]) {
+                        for (index of Object.keys(diff[stat][key])) {
+                            diff[stat][key][index] = helpers[key](data.roleOld, diff[stat][key][index])
+                        }
+                    }
+                }
+            }
+        }
+
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.roleOld.name + " - " + data.roleNew.name,
+                },
+                description: "```json\n" + JSON.stringify(diff, null, 2) + "```",
+                timestamp: new Date(),
+                footer: {
+                    text: data.roleOld.guild.name,
+                    icon_url: data.roleOld.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     channel: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "channel"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.name,
+                },
+                description: "Type:" + data.type,
+                timestamp: data.createdAt,
+                footer: {
+                    text: data.guild.name,
+                    icon_url: data.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     channels: function (data, level, event) {
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "channels"
-            }, level);
+        let diff = detailedDiff(data.channelOld, data.channelNew);
+
+        const helpers = {};
+
+        for (stat of ["added", "deleted", "updated"]) {
+            if (empty(diff[stat])) {
+                delete diff[stat];
+            } else {
+                for (key of []) {
+                    if (diff[stat][key]) {
+                        for (index of Object.keys(diff[stat][key])) {
+                            diff[stat][key][index] = helpers[key](data.channelOld, diff[stat][key][index])
+                        }
+                    }
+                }
+            }
+        }
+
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.channelOld.name + " - " + data.channelNew.name,
+                },
+                description: "```json\n" + JSON.stringify(diff, null, 2) + "```",
+                timestamp: new Date(),
+                footer: {
+                    text: data.channelOld.guild.name,
+                    icon_url: data.channelOld.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     unhandledRejection: function (data, level, event) {
+        const error = {
+            method: data.error.response.req.method,
+            url: data.error.response.req.url,
+            status: data.error.response.status,
+            text: data.error.response.text
+        };
+
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: "```json\n" + JSON.stringify(error, null, 2) + "```",
+                timestamp: new Date(),
+            },
+            message: event
+        }, level);
+    },
+    sharp: function (data, level, error, embedImage) {
+        //TODO
         return embedBuilder.colorWrapper(
             {
                 embed: {},
-                message: "unhandledRejection"
+                message: "sharp error embedded: " + embedImage
             }, level);
     },
-    sharp: function (data, level, error, embedImage) {
-
-    },
     base64: function (data, level, error, embedImage) {
-
+        //TODO
+        return embedBuilder.colorWrapper(
+            {
+                embed: {},
+                message: "base64 error embedded: " + embedImage
+            }, level);
     }
 };
 
