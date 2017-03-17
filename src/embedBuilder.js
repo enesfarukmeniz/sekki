@@ -138,28 +138,45 @@ const embedBuilder = {
         }, level);
     },
     error: function (data, level, event) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "error"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: "```json\n" + JSON.stringify(data, null, 2) + "```",
+                timestamp: new Date()
+            },
+            message: event
+        }, level);
     },
     warn: function (data, level, event) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "warn"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: data,
+                timestamp: new Date(),
+            },
+            message: event
+        }, level);
     },
     guildBan: function (data, level, event) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "guildBan"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.user.username,
+                    icon_url: data.user.avatarURL
+                },
+                description: "",
+                timestamp: new Date(),
+                footer: {
+                    text: data.guild.name,
+                    icon_url: data.guild.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     guildMember: function (data, level, event) {
         return embedBuilder.colorWrapper({
@@ -218,12 +235,20 @@ const embedBuilder = {
         }, level);
     },
     guild: function (data, level, event) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "guild"
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: data.name,
+                },
+                description: "Guild ID: " + data.id,
+                timestamp: new Date(),
+                footer: {
+                    text: data.name,
+                    icon_url: data.iconURL
+                }
+            },
+            message: event
+        }, level);
     },
     role: function (data, level, event) {
         return embedBuilder.colorWrapper({
@@ -326,12 +351,18 @@ const embedBuilder = {
         }, level);
     },
     unhandledRejection: function (data, level, event) {
-        const error = {
-            method: data.error.response.req.method,
-            url: data.error.response.req.url,
-            status: data.error.response.status,
-            text: data.error.response.text
-        };
+        let error = {};
+
+        try {
+            error = {
+                method: data.error.response.req.method,
+                url: data.error.response.req.url,
+                status: data.error.response.status,
+                text: data.error.response.text
+            };
+        } catch (e) {
+            error = {data: data};
+        }
 
         return embedBuilder.colorWrapper({
             embed: {
@@ -345,20 +376,40 @@ const embedBuilder = {
         }, level);
     },
     sharp: function (data, level, error, embedImage) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "sharp error embedded: " + embedImage
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: `Message: ${data.content}\nEmbed: ${embedImage}\nError: ${error}`,
+                timestamp: new Date(),
+            },
+            message: event
+        }, level);
     },
     base64: function (data, level, error, embedImage) {
-        //TODO
-        return embedBuilder.colorWrapper(
-            {
-                embed: {},
-                message: "base64 error embedded: " + embedImage
-            }, level);
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: `Message: ${data.content}\nEmbed: ${embedImage}\nError: ` + "```json\n" + JSON.stringify(error, null, 2) + "```",
+                timestamp: new Date()
+            },
+            message: event
+        }, level);
+    },
+    attachment: function (data, level, error, embedImage) {
+        return embedBuilder.colorWrapper({
+            embed: {
+                author: {
+                    name: "Sekki"
+                },
+                description: `Message: ${data.content}\nEmbed: ${embedImage}\nError: ${error}`,
+                timestamp: new Date(),
+            },
+            message: event
+        }, level);
     }
 };
 

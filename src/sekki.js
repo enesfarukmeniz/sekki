@@ -1,5 +1,4 @@
 const Discord = require("discord.js");
-const JsonDB = require('node-json-db');
 const sharp = require("sharp");
 const empty = require('is-empty');
 const base64 = require("node-base64-image");
@@ -20,45 +19,38 @@ const client = new Discord.Client({
     apiRequestMethod: "sequential",
     sync: true,
     restWsBridgeTimeout: 10000,
-    disabledEvents: ["GUILD_MEMBERS_CHUNK", "MESSAGE_DELETE_BULK", "MESSAGE_REACTION_REMOVE",
-        "MESSAGE_UPDATE", "MESSAGE_REACTION_ADD", "MESSAGE_DELETE", "RELATIONSHIP_REMOVE",
-        "MESSAGE_REACTION_REMOVE_ALL", "USER_NOTE_UPDATE", "VOICE_STATE_UPDATE",
-        "PRESENCE_UPDATE", "TYPING_START", "VOICE_SERVER_UPDATE", "RELATIONSHIP_ADD"
+    disabledEvents: ["GUILD_MEMBERS_CHUNK",
+                     "MESSAGE_DELETE_BULK",
+                     "MESSAGE_REACTION_REMOVE",
+                     "MESSAGE_UPDATE",
+                     "MESSAGE_REACTION_ADD",
+                     "MESSAGE_DELETE",
+                     "RELATIONSHIP_REMOVE",
+                     "MESSAGE_REACTION_REMOVE_ALL",
+                     "USER_NOTE_UPDATE",
+                     "VOICE_STATE_UPDATE",
+                     "PRESENCE_UPDATE",
+                     "TYPING_START",
+                     "VOICE_SERVER_UPDATE",
+                     "RELATIONSHIP_ADD"
     ]
 });
 
-let database;
-
 client.login(config.token);
-
-client.on('ready', () => {
-    database = new JsonDB("data/db", true, true);
-    if (util.getLogData(database, "/log/event/ready")) {
-        logger.generic(client, null, "on ready");
-    }
-});
-
-client.on('reconnecting', () => {
-    if (util.getLogData(database, "/log/event/reconnecting")) {
-        logger.generic(client, null, "reconnecting");
-    }
-});
-
-client.on('disconnect', (event) => {
-    if (util.getLogData(database, "/log/event/disconnect")) {
-        logger.warn(client, event, "disconnect", "closeEvent");
-    }
-});
 
 client.on("message", (message) => {
     if (message.isMentioned(client.user.id) ||
         message.mentions.everyone ||
         (message.guild && message.mentions.roles.filter(role => message.guild.member(client.user.id).roles.has(role.id)).size > 0)) {
-        logger.log(client, message, "mention", "mention");
+        logger.log({event: "mention"}, client, message, "mention", "mention");
     }
-    if (message.author.id !== client.user.id) return;
+    if (message.author.id !== client.user.id) {
+        return;
+    }
 
-    if (!message.content.startsWith(config.prefix)) return;
+    if (!message.content.startsWith(config.prefix)) {
+        return;
+    }
 
     const args = message.content.split(" ");
     const command = args.shift().slice(config.prefix.length);
@@ -73,158 +65,180 @@ client.on("message", (message) => {
             message.guild.fetchMember(client.user.id).then(member => {
                 let missingPermissions = member.missingPermissions(permissions);
                 if (missingPermissions.length === 0) {
-                    commands[command].run(database, client, message, args);
+                    commands[command].run(client, message, args);
                 } else {
                     missingPermissions = {
                         missingPermissions: missingPermissions,
                         message: message
                     };
-                    logger.warn(client, missingPermissions, "missingPermissions", "missingPermissions");
+                    logger.warn({event: "missingPermissions"}, client, missingPermissions, "missingPermissions", "missingPermissions");
                     util.userNotifierPreMessage(message, `I need ${missingPermissions.missingPermissions.join(", ")} to **${command}**.`);
                 }
             });
         } else {
-            commands[command].run(database, client, message, args);
+            commands[command].run(client, message, args);
         }
     } else {
         util.userNotifierPreMessage(message, `No command named **${command}**.`);
-        logger.generic(client, message, "Command not found");
+        logger.generic({}, client, message, "Command not found");
     }
+});
+
+client.on('ready', () => {
+    logger.generic({event: "ready"}, client, null, "on ready");
+    if (util.getData("/welcome", true)) {
+        //TODO welcome
+        util.setData("/welcome", false);
+    }
+});
+
+client.on('reconnecting', () => {
+    logger.generic({event: "reconnecting"}, client, null, "reconnecting");
+});
+
+client.on('disconnect', (event) => {
+    logger.warn({event: "disconnect"}, client, event, "disconnect", "closeEvent");
 });
 
 client.on('emojiCreate', (emoji) => {
-    if (util.getLogData(database, "/log/event/emojiCreate") && util.getLogData(database, "/log/guild/" + emoji.guild.id)) {
-        logger.log(client, emoji, "emojiCreate", "emoji");
-    }
+    logger.log({
+        event: "emojiCreate",
+        guild: emoji.guild.id
+    }, client, emoji, "emojiCreate", "emoji");
 });
 
 client.on('emojiDelete', (emoji) => {
-    if (util.getLogData(database, "/log/event/emojiDelete") && util.getLogData(database, "/log/guild/" + emoji.guild.id)) {
-        logger.log(client, emoji, "emojiDelete", "emoji");
-    }
+    logger.log({
+        event: "emojiDelete",
+        guild: emoji.guild.id
+    }, client, emoji, "emojiDelete", "emoji");
 });
 
 client.on('emojiUpdate', (emojiOld, emojiNew) => {
-    if (util.getLogData(database, "/log/event/emojiUpdate") && util.getLogData(database, "/log/guild/" + emojiOld.guild.id)) {
-        if (!empty(diff(emojiOld, emojiNew))) {
-            logger.log(client, {
-                emojiOld: emojiOld,
-                emojiNew: emojiNew
-            }, "emojiUpdate", "emojis");
-        }
+    if (!empty(diff(emojiOld, emojiNew))) {
+        logger.log({
+            event: "emojiUpdate",
+            guild: emojiOld.guild.id
+        }, client, {
+            emojiOld: emojiOld,
+            emojiNew: emojiNew
+        }, "emojiUpdate", "emojis");
     }
 });
 
 client.on('error', (error) => {
-    if (util.getLogData(database, "/log/event/error")) {
-        logger.error(client, error, "error", "error");
-    }
+    logger.error({event: "error"}, client, error, "error", "error");
 });
 
 client.on('warn', (warn) => {
-    if (util.getLogData(database, "/log/event/warn")) {
-        logger.warn(client, warn, "warn", "warn");
-    }
+    logger.warn({event: "warn"}, client, warn, "warn", "warn");
 });
 
 client.on('guildBanAdd', (guild, user) => {
-    if (util.getLogData(database, "/log/event/guildBanAdd") && util.getLogData(database, "/log/guild/" + guild.id)) {
-        logger.warn(client, {
-            guild: guild,
-            user: user
-        }, "guildBanAdd", "guildBan");
-    }
+    logger.warn({
+        event: "guildBanAdd",
+        guild: guild.id
+    }, client, {
+        guild: guild,
+        user: user
+    }, "guildBanAdd", "guildBan");
 });
 
 client.on('guildBanRemove', (guild, user) => {
-    if (util.getLogData(database, "/log/event/guildBanRemove") && util.getLogData(database, "/log/guild/" + guild.id)) {
-        logger.log(client, {
-            guild: guild,
-            user: user
-        }, "guildBanRemove", "guildBan");
-    }
+    logger.log({
+        event: "guildBanRemove",
+        guild: guild.id
+    }, client, {
+        guild: guild,
+        user: user
+    }, "guildBanRemove", "guildBan");
 });
 
 client.on('guildMemberAdd', (guildMember) => {
-    if (util.getLogData(database, "/log/event/guildMemberAdd") && util.getLogData(database, "/log/guild/" + guildMember.guild.id)) {
-        logger.log(client, guildMember, "guildMemberAdd", "guildMember");
-    }
+    logger.log({
+        event: "guildMemberAdd",
+        guild: guildMember.guild.id
+    }, client, guildMember, "guildMemberAdd", "guildMember");
 });
 
 client.on('guildMemberRemove', (guildMember) => {
-    if (util.getLogData(database, "/log/event/guildMemberRemove") && util.getLogData(database, "/log/guild/" + guildMember.guild.id)) {
-        logger.log(client, guildMember, "guildMemberRemove", "guildMember");
-    }
+    logger.log({
+        event: "guildMemberRemove",
+        guild: guildMember.guild.id
+    }, client, guildMember, "guildMemberRemove", "guildMember");
 });
 
 client.on('guildMemberUpdate', (guildMemberOld, guildMemberNew) => {
-    if (util.getLogData(database, "/log/event/guildMemberUpdate") && util.getLogData(database, "/log/guild/" + guildMemberOld.guild.id)) {
-        if (!empty(diff(guildMemberOld, guildMemberNew))) {
-            logger.log(client, {
-                guildMemberOld: guildMemberOld,
-                guildMemberNew: guildMemberNew
-            }, "guildMemberUpdate", "guildMembers");
-        }
+    if (!empty(diff(guildMemberOld, guildMemberNew))) {
+        logger.log({
+            event: "guildMemberUpdate",
+            guild: guildMemberOld.guild.id
+        }, client, {
+            guildMemberOld: guildMemberOld,
+            guildMemberNew: guildMemberNew
+        }, "guildMemberUpdate", "guildMembers");
     }
 });
 
 client.on('guildUnavailable', (guild) => {
-    if (util.getLogData(database, "/log/event/guildUnavailable") && util.getLogData(database, "/log/guild/" + guild.id)) {
-        logger.warn(client, guild, "guildUnavailable", "guild");
-    }
+    logger.warn({event: "guildUnavailable"}, client, guild, "guildUnavailable", "guild");
 });
 
 client.on('roleCreate', (role) => {
-    if (util.getLogData(database, "/log/event/roleCreate") && util.getLogData(database, "/log/guild/" + role.guild.id)) {
-        logger.log(client, role, "roleCreate", "role");
-    }
+    logger.log({
+        event: "roleCreate",
+        guild: role.guild.id
+    }, client, role, "roleCreate", "role");
 });
 
 client.on('roleDelete', (role) => {
-    if (util.getLogData(database, "/log/event/roleDelete") && util.getLogData(database, "/log/guild/" + role.guild.id)) {
-        logger.log(client, role, "roleDelete", "role");
-    }
+    logger.log({
+        event: "roleDelete",
+        guild: role.guild.id
+    }, client, role, "roleDelete", "role");
 });
 
 client.on('roleUpdate', (roleOld, roleNew) => {
-    if (util.getLogData(database, "/log/event/roleUpdate") && util.getLogData(database, "/log/guild/" + roleOld.guild.id)) {
-        if (!empty(diff(roleOld, roleNew))) {
-            logger.log(client, {
-                roleOld: roleOld,
-                roleNew: roleNew
-            }, "roleUpdate", "roles");
-        }
+    if (!empty(diff(roleOld, roleNew))) {
+        logger.log({
+            event: "roleUpdate",
+            guild: roleOld.guild.id
+        }, client, {
+            roleOld: roleOld,
+            roleNew: roleNew
+        }, "roleUpdate", "roles");
     }
 });
 
 client.on('channelCreate', (channel) => {
-    if (util.getLogData(database, "/log/event/channelCreate") && util.getLogData(database, "/log/guild/" + channel.guild.id)) {
-        logger.log(client, role, "channelCreate", "channel");
-    }
+    logger.log({
+        event: "channelCreate",
+        guild: channel.guild.id
+    }, client, channel, "channelCreate", "channel");
 });
 
 client.on('channelRemove', (channel) => {
-    if (util.getLogData(database, "/log/event/channelRemove") && util.getLogData(database, "/log/guild/" + channel.guild.id)) {
-        logger.log(client, role, "channelRemove", "channel");
-    }
+    logger.log({
+        event: "channelRemove",
+        guild: channel.guild.id
+    }, client, channel, "channelRemove", "channel");
 });
 
 client.on('channelUpdate', (channelOld, channelNew) => {
-    if (util.getLogData(database, "/log/event/channelUpdate") && util.getLogData(database, "/log/guild/" + channelOld.guild.id)) {
-        if (!empty(diff(channelOld, channelNew))) {
-            logger.log(client, {
-                channelOld: channelOld,
-                channelNew: channelNew
-            }, "channelUpdate", "channels");
-        }
+    if (!empty(diff(channelOld, channelNew))) {
+        logger.log({
+            event: "channelUpdate",
+            guild: channelOld.guild.id
+        }, client, {
+            channelOld: channelOld,
+            channelNew: channelNew
+        }, "channelUpdate", "channels");
     }
 });
 
 process.on('unhandledRejection', function (error, promise) {
-    if (util.getLogData(database, "/log/event/unhandledRejection")) {
-        logger.error(client, {
-            error: error,
-            promise: promise
-        }, "unhandledRejection", "unhandledRejection");
-    }
+    logger.error({event: "unhandledRejection"}, client, {
+        error: error,
+        promise: promise
+    }, "unhandledRejection", "unhandledRejection");
 });

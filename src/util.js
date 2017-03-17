@@ -1,3 +1,5 @@
+let database = require("./database.js");
+
 const util = {
     userNotifier: function (channel, message, time = 5) {
         channel.sendMessage(message).then(msg => {
@@ -13,15 +15,22 @@ const util = {
             }, time * 1000);
         });
     },
-    getLogData: function (database, key) {
+    getData: function (key, def = false) {
         try {
             return database.getData(key);
         } catch (e) {
-            return true;
+            return def;
         }
     },
-    setLogData: function (database, key, value) {
+    setData: function (key, value) {
         database.push(key, value);
+    },
+    loggable: function (logParams) {
+        let result = true;
+        for (key of Object.keys(logParams)) {
+            result = result && util.getData("/log/" + key + "/" + logParams[key], true);
+        }
+        return result;
     }
 };
 
