@@ -51,6 +51,7 @@ const logger = {
         }
     },
     embedLogger: function (logParams, client, level, embed, message = "") {
+        //TODO message length
         if (util.loggable({level: level})) {
             const logChannelId = util.getData("/config/logChannels/default");
             if (logChannelId) {

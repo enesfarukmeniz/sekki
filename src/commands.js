@@ -5,12 +5,65 @@ const moment = require('moment');
 require("moment-duration-format");
 const request = require('request');
 const cheerio = require('cheerio');
+const beautify = require('js-beautify').js_beautify
 
 const config = require('./../config.json');
 const logger = require("./logger.js");
 const util = require("./util.js");
 
 const commands = {
+    embedtest: {
+        run: function (client, msg, params) {
+            let embed = {
+                color: 3447003,
+                author: {
+                    name: msg.author.username,
+                    icon_url: msg.author.avatarURL // eslint-disable-line camelcase
+                },
+                title: 'THIS IS A TITLE',
+                url: 'http://example.com', // The url for the title.
+                description: 'This is a test embed to showcase what they look like and what they can do.\n[Code here](https://github.com/vzwGrey/discord-selfbot/blob/master/commands/embed.js)',
+                fields: [
+                    {
+                        name: 'Fields',
+                        value: 'They can have different fields with small headlines.'
+                    },
+                    {
+                        name: 'Masked links',
+                        value: 'You can put [masked](https://github.com/vzwGrey/discord-selfbot/blob/master/commands/embed.js) links inside of rich embeds.'
+                    },
+                    {
+                        name: 'Markdown',
+                        value: 'You can put all the *usual* **__Markdown__** inside of them.'
+                    },
+                    {
+                        name: 'Inline fields',
+                        value: 'You can also have fields inline with eachother using the `inline` property',
+                        inline: true
+                    },
+                    {
+                        name: 'Images & thumbnails',
+                        value: 'You can also embed images, and use little thumbnails!',
+                        inline: true
+                    }
+                ],
+                /* thumbnail: {
+                 url: 'http://i.imgur.com/uaUxZtz.jpg'
+                 } */
+                image: {
+                    url: 'http://i.imgur.com/uaUxZtz.jpg'
+                },
+                timestamp: new Date(),
+                footer: {
+                    icon_url: msg.author.avatarURL, // eslint-disable-line camelcase
+                    text: '©vzwGrey'
+                }
+            };
+
+            msg.channel.sendMessage('',
+                {embed});
+        }
+    },
     help: {
         help: "help [%command%](obviously lol)",
         description: "Helps about commands lol",
@@ -65,6 +118,32 @@ const commands = {
                 "• Servers    :: " + client.guilds.size.toLocaleString() + "\n" +
                 "• Channels   :: " + client.channels.size.toLocaleString() + "```";
             util.userNotifierPreMessage(message, info, 10);
+        }
+    },
+    eval: {
+        help: "eval %...code%",
+        description: "evil",
+        run: function (client, message, code) {
+            let input = code.join(' ');
+
+            //TODO message length
+            try {
+                let output = eval(input);
+                if (output === null) {
+                    output = "null";
+                }
+                if (typeof output != 'string') {
+                    output = require('util').inspect(output);
+                }
+                output = output.replace(client.token,
+                    '*insert token*').replace(client.user.email,
+                    '*insert mail*');
+                message.edit("**Code**\n```js\n" + beautify(input,
+                        {indent_size: 2}) + "```\n**Output**\n```js\n" + output + "```");
+            } catch (error) {
+                message.edit("**Code**\n```js\n" + beautify(input,
+                        {indent_size: 2}) + "```\n**Error**\n```js\n" + error + "```");
+            }
         }
     },
     stats: {

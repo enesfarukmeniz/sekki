@@ -213,22 +213,27 @@ client.on('roleUpdate', (roleOld, roleNew) => {
 client.on('channelCreate', (channel) => {
     logger.log({
         event: "channelCreate",
-        guild: channel.guild.id
+        guild: channel.guild ? channel.guild.id : null
     }, client, channel, "channelCreate", "channel");
 });
 
-client.on('channelRemove', (channel) => {
+client.on('channelDelete',
+    (channel) => {
     logger.log({
-        event: "channelRemove",
-        guild: channel.guild.id
-    }, client, channel, "channelRemove", "channel");
+            event: "channelDelete",
+            guild: channel.guild ? channel.guild.id : null
+        },
+        client,
+        channel,
+        "channelDelete",
+        "channel");
 });
 
 client.on('channelUpdate', (channelOld, channelNew) => {
     if (!empty(diff(channelOld, channelNew))) {
         logger.log({
             event: "channelUpdate",
-            guild: channelOld.guild.id
+            guild: channelOld.guild ? channelOld.guild.id : null
         }, client, {
             channelOld: channelOld,
             channelNew: channelNew

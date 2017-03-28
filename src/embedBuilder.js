@@ -309,8 +309,8 @@ const embedBuilder = {
                 description: "Type:" + data.type,
                 timestamp: data.createdAt,
                 footer: {
-                    text: data.guild.name,
-                    icon_url: data.guild.iconURL
+                    text: data.guild ? data.guild.name : "",
+                    icon_url: data.guild ? data.guild.iconURL : ""
                 }
             },
             message: event
@@ -343,8 +343,8 @@ const embedBuilder = {
                 description: "```json\n" + JSON.stringify(diff, null, 2) + "```",
                 timestamp: new Date(),
                 footer: {
-                    text: data.channelOld.guild.name,
-                    icon_url: data.channelOld.guild.iconURL
+                    text: data.channelOld.guild ? data.channelOld.guild.name : "",
+                    icon_url: data.channelOld.guild ? data.channelOld.guild.iconURL : ""
                 }
             },
             message: event
