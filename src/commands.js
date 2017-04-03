@@ -551,7 +551,7 @@ const commands = {
                 "off": false
             };
             if (valueMap[value] === false || valueMap[value] === true) {
-                commands.set(client, message, valueMap[value], keys)
+                commands.set.run(client, message, valueMap[value], keys)
             } else {
                 util.userNotifierPreMessage(message, "No value found for " + value);
             }
