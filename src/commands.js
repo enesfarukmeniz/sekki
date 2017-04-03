@@ -550,7 +550,7 @@ const commands = {
                 "0": false,
                 "off": false
             };
-            if (valueMap[value]) {
+            if (valueMap[value] === false || valueMap[value] === true) {
                 commands.set(client, message, valueMap[value], keys)
             } else {
                 util.userNotifierPreMessage(message, "No value found for " + value);
