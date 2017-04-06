@@ -121,6 +121,7 @@ const logger = {
             "warning": "warn",
             "error": "error"
         };
+        logData = require('util').inspect(logData);
         winstonLogger.log(levels[level], util.scrubOutput(client, JSON.stringify(logData, null, 4)));
     }
 };
