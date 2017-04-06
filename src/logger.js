@@ -1,19 +1,52 @@
 const winston = require("winston");
 require("winston-daily-rotate-file");
+const beautify = require('js-beautify').js_beautify
 
 const embedBuilder = require("./embedBuilder.js");
 const util = require("./util.js");
 const config = require('./../config.json');
+
+const winstonLogger = new (winston.Logger)({
+    exitOnError: false,
+    transports: [
+        new winston.transports.DailyRotateFile({
+            name: 'info-log',
+            filename: 'logs/info-',
+            datePattern: 'yyyy-MM-dd.log',
+            level: 'info',
+            json: false,
+            prettyPrint: false
+        }),
+        new winston.transports.DailyRotateFile({
+            name: 'warning-log',
+            filename: 'logs/warning-',
+            datePattern: 'yyyy-MM-dd.log',
+            level: 'warn',
+            json: false,
+            prettyPrint: false
+        }),
+        new winston.transports.DailyRotateFile({
+            name: 'error-log',
+            filename: 'logs/error-',
+            datePattern: 'yyyy-MM-dd.log',
+            level: 'error',
+            json: false,
+            prettyPrint: false,
+            handleExceptions: true,
+            humanReadableUnhandledException: true
+        })
+    ]
+});
 
 const logger = {
     generic: function (logParams, client, message, log) {
         if (util.loggable(logParams)) {
             const level = "info";
             if (message) {
-                logger.winstonLogger();
+                logger.winstonLogger(level, client, logParams, message, log);
                 logger.embedLogger(logParams, client, level, embedBuilder.message(message, level).embed, log);
             } else {
-                logger.winstonLogger();
+                logger.winstonLogger(level, client, logParams, message, log);
                 logger.embedLogger(logParams, client, level, embedBuilder.empty(level).embed, log);
             }
         }
@@ -22,7 +55,7 @@ const logger = {
         if (util.loggable(logParams)) {
             const level = "info";
             const logMessage = embedBuilder[wrapper](data, level, event);
-            logger.winstonLogger();
+            logger.winstonLogger(level, client, logParams, event, data);
             logger.embedLogger(logParams, client, level, logMessage.embed, logMessage.message);
         }
     },
@@ -30,7 +63,7 @@ const logger = {
         if (util.loggable(logParams)) {
             const level = "warning";
             const logMessage = embedBuilder[wrapper](data, level, event);
-            logger.winstonLogger();
+            logger.winstonLogger(level, client, logParams, event, data);
             logger.embedLogger(logParams, client, level, logMessage.embed, logMessage.message);
         }
     },
@@ -38,7 +71,7 @@ const logger = {
         if (util.loggable(logParams)) {
             const level = "error";
             const logMessage = embedBuilder[wrapper](data, level, event);
-            logger.winstonLogger();
+            logger.winstonLogger(level, client, logParams, event, data);
             logger.embedLogger(logParams, client, level, logMessage.embed, logMessage.message);
         }
     },
@@ -46,7 +79,7 @@ const logger = {
         if (util.loggable(logParams)) {
             const level = "error";
             const logMessage = embedBuilder[wrapper](data, level, error, embedImage);
-            logger.winstonLogger();
+            logger.winstonLogger(level, client, logParams, error, data, embedImage);
             logger.embedLogger(logParams, client, level, logMessage.embed, logMessage.message);
         }
     },
@@ -82,8 +115,13 @@ const logger = {
             console.log("Level log channel not configured for " + level);
         }
     },
-    winstonLogger: function () {
-        //TODO Winston where r u?
+    winstonLogger: function (level, client, ...logData) {
+        const levels = {
+            "info": "info",
+            "warning": "warn",
+            "error": "error"
+        };
+        winstonLogger.log(levels[level], util.scrubOutput(client, JSON.stringify(logData, null, 4)));
     }
 };
 

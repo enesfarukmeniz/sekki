@@ -135,9 +135,7 @@ const commands = {
                 if (typeof output != 'string') {
                     output = require('util').inspect(output);
                 }
-                output = output.replace(client.token,
-                    '*insert token*').replace(client.user.email,
-                    '*insert mail*');
+                output = util.scrubOutput(client, output);
                 message.edit("**Code**\n```js\n" + beautify(input,
                         {indent_size: 2}) + "```\n**Output**\n```js\n" + output + "```");
             } catch (error) {

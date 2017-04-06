@@ -15,6 +15,10 @@ const util = {
             }, time * 1000);
         });
     },
+    scrubOutput: function (client, output) {
+        return output.replace(new RegExp(client.token, 'g'), '*insert token*')
+            .replace(new RegExp(client.user.email, 'g'), '*insert mail*');
+    },
     getData: function (key, def = false) {
         try {
             return database.getData(key);
