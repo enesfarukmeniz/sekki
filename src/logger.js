@@ -122,7 +122,7 @@ const logger = {
             "error": "error"
         };
         logData = require('util').inspect(logData);
-        winstonLogger.log(levels[level], util.scrubOutput(client, JSON.stringify(logData, null, 4)));
+        winstonLogger.log(levels[level], util.scrubOutput(client, JSON.stringify(logData, null, 4)).replace(new RegExp("\\\\n", 'g'), "\n"));
     }
 };
 
