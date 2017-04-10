@@ -307,7 +307,7 @@ const embedBuilder = {
                     name: data.name,
                 },
                 description: "Type:" + data.type,
-                timestamp: data.createdAt,
+                timestamp: new Date(),
                 footer: {
                     text: data.guild ? data.guild.name : "",
                     icon_url: data.guild ? data.guild.iconURL : ""
